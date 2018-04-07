@@ -1,1 +1,12 @@
 *.tar
+/Code/review.json
+/Code/review.json.gz
+/Code/review10.json
+/Dataset/dataset/business.json
+/Dataset/dataset/checkin.json
+/Dataset/dataset/Dataset_Challenge_Dataset_Agreement.pdf
+/Dataset/dataset/photos.json
+/Dataset/dataset/review.json.gz
+/Dataset/dataset/tip.json
+/Dataset/dataset/user.json
+/Dataset/dataset/Yelp_Dataset_Challenge_Round_11.pdf
