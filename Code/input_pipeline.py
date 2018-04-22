@@ -1,14 +1,9 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-import json
-import nltk
-import numpy as np
 import tensorflow as tf
-
-def parse_function(input_line):
-	input_line = input_line.decode('utf-8')
-	return json.loads(input_line.lower())['text'].encode('utf-8')
+import preprocess_dataset as ppd
+import TFRecord_dataset as exp_TFR
 
 # pre-trained Punkt tokenizer for English
 # nltk.download('punkt')
@@ -16,104 +11,82 @@ def parse_function(input_line):
 # nltk.download('crubadan')
 #sent_detector = nltk.data.load('tokenizers/punkt/english.pickle')
 
-from nltk.tokenize import sent_tokenize, word_tokenize
+filename = "Dataset/shuf_review.json.gz"
+dataset = tf.data.TextLineDataset(filename, compression_type =  "GZIP")
 
-def tokenize_sentences(input_line):
-	input_line = input_line.decode('utf-8')
-	sentences = sent_tokenize(input_line.strip())
-	#return np.array(sent_detector.tokenize(input_line.strip()), dtype='object')
-	return np.array(sentences, dtype='object')
-
-from nltk.corpus import stopwords
-from nltk.classify import textcat
-
-stop_words = set(stopwords.words('english')) 	# About 150 stopwords
-
-def remove_stopwords(word_list):
-    processed_word_list = []
-    for word in word_list:
-        word = textcat.TextCat().remove_punctuation(word)
-        #word = word.lower() # in case they arenet all lower cased
-        if word and word not in stop_words:
-            processed_word_list.append(word)
-    return processed_word_list
-
-
-def tokenize_words(sentence):
-	words = word_tokenize(sentence.decode('utf-8'))
-
-	# words = [w for w in words if not w in stop_words]
-	
-	return np.array(remove_stopwords(words), dtype='object')
-#	return np.array(remove_stopwords(input_line), dtype='object')
-
-#filename = "review.json.gz"
-#dataset = tf.data.TextLineDataset(filename, compression_type =  "GZIP")
-
-filename = "review10.json"
-dataset = tf.data.TextLineDataset(filename)
+# file_json = "Dataset/review10.json"
+# dataset = tf.data.TextLineDataset(file_json)
 
 # Parso il file json estraendo solo la recensione 
 texts = dataset.map(lambda input_line:
-						tf.py_func(parse_function, [input_line], tf.string))
+                        tf.py_func(ppd.parse_function, [input_line], [tf.string, tf.string]))
 
-# Split upon punctuations to generate sentences
-sentences = texts.flat_map(lambda input_line:
-						tf.data.Dataset.from_tensor_slices(tf.py_func(tokenize_sentences, [input_line], tf.string)))
+#TRAINING E TEST
+train_dataset, test_dataset = ppd.split_dataset(texts, 80, 5261669) #5261669
 
-# Split to generate words
-words = sentences.map(lambda input_line:
-						tf.py_func(tokenize_words, [input_line], tf.string))
+texts_words = ppd.text2words(texts)
+train_words = ppd.text2words(train_dataset)
+test_words = ppd.text2words(test_dataset)
 
-#dataset = dataset.shuffle(buffer_size = 10000)
 #dataset = dataset.batch(5)
 
-# Creo un iteratore a partire dal dataset
-texts_iterator = texts.make_one_shot_iterator()
+## Creo un iteratore a partire dal dataset
+words_iterator = texts_words.make_one_shot_iterator()
+train_iterator = train_words.make_one_shot_iterator()
+test_iterator = test_words.make_one_shot_iterator()
 
-sentences_iterator = sentences.make_one_shot_iterator()
+## Tensore simile a un placeholder
+words_element = words_iterator.get_next()
+train_element = train_iterator.get_next()
+test_element = test_iterator.get_next()
 
-words_iterator = words.make_one_shot_iterator()
+# address to save the TFRecords file
+words_filename = 'Dataset/TFRecords/words_sentence.tfrecords.gz'
+train_filename = 'Dataset/TFRecords/train.tfrecords.gz'  
+test_filename = 'Dataset/TFRecords/test.tfrecords.gz'  
 
-text_element = texts_iterator.get_next() # Tensore simile a un placeholder
-sentence_element = sentences_iterator.get_next() # Tensore simile a un placeholder
-word_element = words_iterator.get_next() # Tensore simile a un placeholder
+
+opts = tf.python_io.TFRecordOptions(tf.python_io.TFRecordCompressionType.GZIP)
+
+# open the TFRecords file
+writer = tf.python_io.TFRecordWriter(words_filename, opts)
+train_writer = tf.python_io.TFRecordWriter(train_filename, opts)
+test_writer = tf.python_io.TFRecordWriter(test_filename, opts)
 
 # Consumo il dataset
 with tf.Session() as sess:
-	while True:
-		try:
-			(sess.run(text_element))
-			print(sess.run(sentence_element))
-			print(sess.run(word_element))
-		except tf.errors.OutOfRangeError:
-			break
 
-# divido le sentences (stemming) es. tempi verbali, nomi maschili, lower case
+    while True:
+        try:
+            (a, b) = (sess.run(train_element))  
+            #print('training', a, b)
+            exp_TFR.write_TFRecords(a, b, train_writer)
+
+        except tf.errors.OutOfRangeError:
+                break
+
+    train_writer.close()
+
+    while True:
+        try:
+            (c, d) = (sess.run(test_element))  
+            #print('test', c, d)
+            exp_TFR.write_TFRecords(c, d, test_writer)
+
+        except tf.errors.OutOfRangeError:
+                break
+
+    test_writer.close()
+    
+    while True:
+        try:
+            id, text = (sess.run(words_element))
+            #print('WORDS', id, text)
+            exp_TFR.write_TFRecords(id, text, writer)
+            
+        except tf.errors.OutOfRangeError:
+            break
+    writer.close()
+
+# divido le sentences (stemming) es. tempi verbali, nomi maschili
 # We also removed numbers, non-English words, urls, and extraneous information contained in PDF versions
-
-
-
-# carico il dataset degli aggettivi (aggettivo, vettore ocean)			Ground Truth Collection
-# dataset.filter
-			
-			
-# 2: Build the dictionary 
-
-
-
-
-
-
-# 3: Function to generate a training batch for the skip-gram model.
-
-# window size: 5
-
-# 4: Build and train a skip-gram model.
-# 5: Begin training.
-
-
-# Our method integrates GloVe features with Gaussian Process regression as the learning algorithm.
-
-
-# 6: Visualize the embeddings.
