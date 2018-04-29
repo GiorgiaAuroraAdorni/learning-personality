@@ -9,58 +9,58 @@ import TFRecord_dataset as exp_TFR
 # nltk.download('punkt')
 # nltk.download('stopwords')
 # nltk.download('crubadan')
-#sent_detector = nltk.data.load('tokenizers/punkt/english.pickle')
+# sent_detector = nltk.data.load('tokenizers/punkt/english.pickle')
 
 filename = "Dataset/shuf_review.json.gz"
-dataset = tf.data.TextLineDataset(filename, compression_type =  "GZIP")
+dataset = tf.data.TextLineDataset(filename, compression_type="GZIP")
 
 # file_json = "Dataset/review10.json"
 # dataset = tf.data.TextLineDataset(file_json)
 
-# Parso il file json estraendo solo la recensione 
+# json parsing and reviews extraction
 texts = dataset.map(lambda input_line:
-                        tf.py_func(ppd.parse_function, [input_line], [tf.string, tf.string]))
+                    tf.py_func(ppd.parse_function, [input_line], [tf.string, tf.string]))
 
-#TRAINING E TEST
-train_dataset, test_dataset = ppd.split_dataset(texts, 80, 5261669) #5261669
+# Generate training and test dataset
+train_dataset, test_dataset = ppd.split_dataset(texts, 80, 5261669)  # 5261669
 
 texts_words = ppd.text2words(texts)
 train_words = ppd.text2words(train_dataset)
 test_words = ppd.text2words(test_dataset)
 
-#dataset = dataset.batch(5)
+# dataset = dataset.batch(5)
 
-## Creo un iteratore a partire dal dataset
+# Create iterator from dataset
 words_iterator = texts_words.make_one_shot_iterator()
 train_iterator = train_words.make_one_shot_iterator()
 test_iterator = test_words.make_one_shot_iterator()
 
-## Tensore simile a un placeholder
+# Tensor from iterator
 words_element = words_iterator.get_next()
 train_element = train_iterator.get_next()
 test_element = test_iterator.get_next()
 
-# address to save the TFRecords file
+# Address to save the TFRecords file
 words_filename = 'Dataset/TFRecords/words_sentence.tfrecords.gz'
 train_filename = 'Dataset/TFRecords/train.tfrecords.gz'  
 test_filename = 'Dataset/TFRecords/test.tfrecords.gz'  
 
-
+# Options to zip file
 opts = tf.python_io.TFRecordOptions(tf.python_io.TFRecordCompressionType.GZIP)
 
-# open the TFRecords file
+# Open the TFRecords file
 writer = tf.python_io.TFRecordWriter(words_filename, opts)
 train_writer = tf.python_io.TFRecordWriter(train_filename, opts)
 test_writer = tf.python_io.TFRecordWriter(test_filename, opts)
 
-# Consumo il dataset
+# Consumption dataset
 with tf.Session() as sess:
 
     while True:
         try:
             (a, b) = (sess.run(train_element))  
-            #print('training', a, b)
-            exp_TFR.write_TFRecords(a, b, train_writer)
+            # print('training', a, b)
+            exp_TFR.write_tfrecords(a, b, train_writer)
 
         except tf.errors.OutOfRangeError:
                 break
@@ -70,8 +70,8 @@ with tf.Session() as sess:
     while True:
         try:
             (c, d) = (sess.run(test_element))  
-            #print('test', c, d)
-            exp_TFR.write_TFRecords(c, d, test_writer)
+            # print('test', c, d)
+            exp_TFR.write_tfrecords(c, d, test_writer)
 
         except tf.errors.OutOfRangeError:
                 break
@@ -80,12 +80,13 @@ with tf.Session() as sess:
     
     while True:
         try:
-            id, text = (sess.run(words_element))
-            #print('WORDS', id, text)
-            exp_TFR.write_TFRecords(id, text, writer)
+            ids, text = (sess.run(words_element))
+            # print('WORDS', id, text)
+            exp_TFR.write_tfrecords(ids, text, writer)
             
         except tf.errors.OutOfRangeError:
             break
+
     writer.close()
 
 # divido le sentences (stemming) es. tempi verbali, nomi maschili
