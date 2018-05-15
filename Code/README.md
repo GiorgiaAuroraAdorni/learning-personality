@@ -20,12 +20,11 @@ automaticamente gli schemi degli scacchi de _La Settimana Enigmistica_.
     * Vengono eliminati gli aggettivi che compaiono nel dizionario presenti nel dataset ocean.
     * Generiamo un nuovo file compatto in cui abbiamo solo le prime n parole più frequenti, in modo che in seguito venga associato ad essi il token 'UNK'.
         
-* Nel file `bag_of_words`, `extract_features` :
+* Nei file `extract_features`, `training`, `model_input`  :
     * Viene costruita una lookup-table contentente le 60000 parole più frequenti. Le parole univoche vengono indicizzate con un valore intero univoco (corrispondente al numero della linea), le parole non comprese tra le prime 60000 parole più comuni verranno contrassegnate con "-1". 
     * Viene create una reverse lookup-table che permette di cercare una parola passando attraverso il suo identificatore univoco. Le parole sconosciute, identificate da '-1', vengono sostituite con il token "UNK".
-    * Viene generato il vettore on_hot.
-    
-    * associamo il vettore ocean
+    * Viene generato il vettore bag of words e ad esso viene associato il vettore ocean.
+    * Costruiamo un modello di base, con n layer, funzione di attivazione etc... .
 
 
 ## Utilizzo
