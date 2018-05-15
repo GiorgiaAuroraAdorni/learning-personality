@@ -43,14 +43,3 @@ def decode(serialized_example):
     ids = features['id']
 
     return ids, text
-
-
-
-
-
-
-
-
-
-
-

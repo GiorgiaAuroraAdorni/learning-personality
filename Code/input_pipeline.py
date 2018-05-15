@@ -58,8 +58,8 @@ with tf.Session() as sess:
 
     while True:
         try:
-            (a, b) = (sess.run(train_element))  
-            # print('training', a, b)
+            (a, b) = (sess.run(train_element))
+            #print('training', a, b)
             exp_TFR.write_tfrecords(a, b, train_writer)
 
         except tf.errors.OutOfRangeError:
@@ -69,8 +69,8 @@ with tf.Session() as sess:
 
     while True:
         try:
-            (c, d) = (sess.run(test_element))  
-            # print('test', c, d)
+            (c, d) = (sess.run(test_element))
+            #print('test', c, d)
             exp_TFR.write_tfrecords(c, d, test_writer)
 
         except tf.errors.OutOfRangeError:

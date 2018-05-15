@@ -71,7 +71,7 @@ def combine_for_words(id_line, input_line):
 
 # Ground Truth Collection
 # Load adjective dataset (adjective, ocean vector)
-file_csv = "Dataset/ocean.csv"
+file_csv = "Dataset/adjective_ocean.csv"
 ocean_dict = csv2dict(file_csv)
 
 
