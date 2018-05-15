@@ -10,3 +10,7 @@
 /Dataset/dataset/tip.json
 /Dataset/dataset/user.json
 /Dataset/dataset/Yelp_Dataset_Challenge_Round_11.pdf
+*.sql
+/Code/__pycache__
+/Code/.fuse_hidden0000016e0000001d
+/Code/.idea
