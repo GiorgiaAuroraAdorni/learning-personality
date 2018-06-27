@@ -15,21 +15,6 @@ class InputInitHook(tf.train.SessionRunHook):
     #     session.run(self.tables_initializer)
 
 
-def create_fully_connected_layer(net, units, activation, name, is_training):
-    net = tf.layers.dense(net,  # input
-                          units=units,  # number of neurons
-                          use_bias=False,
-                          # activation=tf.nn.sigmoid, # activation function
-                          activation=None,
-                          name=name)
-
-    if activation is not None:
-        net = tf.layers.batch_normalization(net, axis=-1, training=is_training, fused=True)
-        net = activation(net)
-
-    return net
-
-
 def create_input_fn(filename):
     # init_hook = InputInitHook()
 
@@ -76,13 +61,29 @@ def create_input_fn(filename):
         dataset = corpus.map(lambda ids, text: extract_features(ids, text, table, ocean_table), num_parallel_calls=8)
 
         # Delete all the sentences without adjective
-        dataset = dataset.filter(lambda features, ocean_vector: tf.reduce_all(tf.is_finite(ocean_vector)))
+        # dataset = dataset.filter(lambda features, ocean_vector: tf.reduce_all(tf.is_finite(ocean_vector)))
+        dataset = dataset.filter(lambda features, ocean_value: tf.reduce_all(tf.is_finite(ocean_value)))
 
         dataset = dataset.batch(batch_size=500)
 
         return dataset
 
-    return input_fn  # , init_hook
+    return input_fn  #, init_hook
+
+
+def create_fully_connected_layer(net, units, activation, name, is_training):
+    net = tf.layers.dense(net,  # input
+                          units=units,  # number of neurons
+                          use_bias=False,
+                          # activation=tf.nn.sigmoid, # activation function
+                          activation=None,
+                          name=name)
+
+    if activation is not None:
+        net = tf.layers.batch_normalization(net, axis=-1, training=is_training, fused=True)
+        net = activation(net)
+
+    return net
 
 
 def model_fn(features, labels, mode, params):
@@ -100,6 +101,10 @@ def model_fn(features, labels, mode, params):
     net = create_fully_connected_layer(net, 20, tf.nn.relu, 'layer3', is_training)
 
     net = create_fully_connected_layer(net, 5, None, 'layer4', is_training)
+    # net = create_fully_connected_layer(net, 1, None, 'layer3', is_training)
+
+    # Fixed labels shape
+    #labels = tf.expand_dims(labels, axis=-1)
 
     # Predictions
     if mode == tf.estimator.ModeKeys.PREDICT:
@@ -108,63 +113,40 @@ def model_fn(features, labels, mode, params):
         return tf.estimator.EstimatorSpec(mode, predictions=predictions)
 
     # Evaluation
-    loss = tf.losses.mean_squared_error(labels=labels,
-                                        predictions=net)
+    loss = tf.losses.mean_squared_error(labels=labels, predictions=net)
 
-    # loss = tf.reduce_mean(
-    #     tf.nn.nce_loss(weights=nce_weights,
-    #                    biases=nce_biases,
-    #                    labels=labels,
-    #                    inputs=embed,
-    #                    num_sampled=num_sampled,
-    #                    num_classes=vocabulary_size))
+    rmse = tf.metrics.root_mean_squared_error(labels, net)
 
-    # loss = tf.nn.sigmoid_cross_entropy_with_logits(labels=labels, predictions=net)
+    mean_o = tf.metrics.mean(net[:, 0])
 
-    rmse = tf.metrics.root_mean_squared_error(labels,
-                                              net)
+    mean_c = tf.metrics.mean(net[:, 1])
 
-    rmse_o = tf.metrics.root_mean_squared_error(labels[:, 0],
-                                                net[:, 0])
+    mean_e = tf.metrics.mean(net[:, 2])
 
-    rmse_c = tf.metrics.root_mean_squared_error(labels[:, 1],
-                                                net[:, 1])
+    mean_a = tf.metrics.mean(net[:, 3])
 
-    rmse_e = tf.metrics.root_mean_squared_error(labels[:, 2],
-                                                net[:, 2])
+    mean_n = tf.metrics.mean(net[:, 4])
 
-    rmse_a = tf.metrics.root_mean_squared_error(labels[:, 3],
-                                                net[:, 3])
+    metric_ops = {'rmse': rmse, 'mean_openness': mean_o, 'mean_conscientiousness': mean_c,
+                  'mean_extraversion': mean_e, 'mean_agreeableness': mean_a, 'mean_neuroticism': mean_n}
 
-    rmse_n = tf.metrics.root_mean_squared_error(labels[:, 4],
-                                                net[:, 4])
-
-    metric_ops = {'rmse': rmse, 'rmse_openness': rmse_o, 'rmse_conscientiousness': rmse_c,
-                  'rmse_extraversion': rmse_e, 'rmse_agreeableness': rmse_a, 'rmse_neuroticism': rmse_n}
+    # metric_ops = {'rmse': rmse}
 
     tf.summary.scalar('rmse', rmse[1])  # Tensorboard
 
-    tf.summary.scalar('rmse_openness', rmse_o[1])  # Tensorboard
-    tf.summary.scalar('rmse_conscientiousness', rmse_c[1])  # Tensorboard
-    tf.summary.scalar('rmse_extraversion', rmse_e[1])  # Tensorboard
-    tf.summary.scalar('rmse_agreeableness', rmse_a[1])  # Tensorboard
-    tf.summary.scalar('rmse_neuroticism', rmse_n[1])  # Tensorboard
+    tf.summary.scalar('mean_openness', mean_o[1])  # Tensorboard
+    tf.summary.scalar('mean_conscientiousness', mean_c[1])  # Tensorboard
+    tf.summary.scalar('mean_extraversion', mean_e[1])  # Tensorboard
+    tf.summary.scalar('mean_agreeableness', mean_a[1])  # Tensorboard
+    tf.summary.scalar('mean_neuroticism', mean_n[1])  # Tensorboard
 
+    # Evaluation
     if mode == tf.estimator.ModeKeys.EVAL:
         return tf.estimator.EstimatorSpec(mode, loss=loss,
                                           eval_metric_ops=metric_ops)
 
     # Training
     assert mode == tf.estimator.ModeKeys.TRAIN
-
-    # compute mean cross entropy (softmax is applied internally)
-    # cost = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(logits=py_x, labels=Y))
-
-    # cost = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(logits=predictions, labels=labels))
-    # predictions = multilayer_perceptron(x, weights, biases, keep_prob)
-
-    # train_op = tf.train.GradientDescentOptimizer(0.05).minimize(cost)  # construct optimizer
-    # predict_op = tf.argmax(py_x, 1)  # at predict time, evaluate the argmax of the logistic regression
 
     # check_op = tf.add_check_numerics_ops()
 

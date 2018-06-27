@@ -45,4 +45,6 @@ def extract_features(ids, text, table, ocean_table):
     non_zero = tf.count_nonzero(ocean, 0, dtype=tf.float32)
     ocean_vector = tf.reduce_sum(ocean_new_table, 0) / non_zero
 
-    return features, ocean_vector
+    #ocean_value = tf.reduce_mean(ocean_vector)
+
+    return features, ocean_vector  #, ocean_value 
