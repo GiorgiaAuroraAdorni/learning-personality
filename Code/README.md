@@ -1,8 +1,28 @@
 # Learning Personality
 
-`chess_recognition` è una libreria MATLAB che permette di riconoscere 
-automaticamente gli schemi degli scacchi de _La Settimana Enigmistica_.
+`Learning Personality` è un progetto formativo svolto durante lo stage di laurea triennale.  
+Il lavoro consiste nell'identificazione di una procedura in grado di estrarre, tramite approcci automatici, la personalità del oggetto "target" a cui un determinato testo si riferisce.  
+ Vengono esplorati diversi spazi di rappresentazione, si parte da un approccio che sfrutta la rappresentazione *bag-of-words*, fino a giungere alla costruzione di un embedding di parole utilizzando la versione *skip-gram* dell'algoritmo `word2vec` di Tomas Mikolov. 
+ In seguito si sfrutteranno tre diversi tipi di reti neurali artificiali.  
 
+## Obiettivo
+
+La natura di questo progetto di tesi è altamente sperimentale ed è volta a presentare analisi
+dettagliate sull’argomento, in quanto allo stato attuale non esistono importanti indagini
+che affrontino il problema dell’apprendimento dei tratti di personalità a partire da testo in
+linguaggio naturale.
+
+## Addestramento
+
+Sono stati creati una serie di script Python per automatizzare e rendere ripetibile il 
+processo di preprocessing, estrazione delle feature e l'addestramento dei modelli. 
+
+Il primo modello implementato è una NN *feed-forward* e *fully-connected*.  
+
+Il secondo modello utilizzata uan classi di algorimi distribuzionali che consistono nell'utilizzo di una rete neurale in grado di imparare, in modo non supervisionato, i contesti delle parole.
+L'embedding di parole da qui generato viene utilizzato come input per una NN *convoluzionale*.
+
+Il terzo modello trasforma il problema di regressione in uno di *classificazione binaria multi-label*, in cui per ogni dimensione di personalità l'output sarà 0 o 1.
 
 ## In ordine
 
@@ -19,80 +39,36 @@ automaticamente gli schemi degli scacchi de _La Settimana Enigmistica_.
     * In seguito eseguiamo un sorting del file, teniamo un contatore per ogni parola in modo da non avere ripetizioni e ordiniamo nuovamente.
     * Vengono eliminati gli aggettivi che compaiono nel dizionario presenti nel dataset ocean.
     * Generiamo un nuovo file compatto in cui abbiamo solo le prime n parole più frequenti, in modo che in seguito venga associato ad essi il token 'UNK'.
-        
-* Nei file `extract_features`, `training`, `model_input`  :
+
+#####Modello 1
+   
+* Nei file `extract_features`, `model_input`, `training` :
     * Viene costruita una lookup-table contentente le 60000 parole più frequenti. Le parole univoche vengono indicizzate con un valore intero univoco (corrispondente al numero della linea), le parole non comprese tra le prime 60000 parole più comuni verranno contrassegnate con "-1". 
-    * Viene create una reverse lookup-table che permette di cercare una parola passando attraverso il suo identificatore univoco. Le parole sconosciute, identificate da '-1', vengono sostituite con il token "UNK".
+    * Viene creata una reverse lookup-table che permette di cercare una parola passando attraverso il suo identificatore univoco. Le parole sconosciute, identificate da '-1', vengono sostituite con il token "UNK".
     * Viene generato il vettore bag of words e ad esso viene associato il vettore ocean.
-    * Costruiamo un modello di base, con n layer, funzione di attivazione etc... .
+    * Costruiamo un modello di base, con n layer completamente connessi. Ad ognuno di essi viene applicata la funzione di attivazione non lineare *ReLU*. Dopo ogni layer viene effettuata una *batch-normalization*.
+    * Le simulazioni possono essere addestate per n epoche. L'ottimizzatore scelto è *Adagrad* con learning rate 0,001. La funzione obiettivo utilizzata è il *mean squared error* MSE, inoltre si ricorre all'utilizzo della metrica *root mean squared error* RMSE.
+
+#####Modello 2
+
+* Nei file `mikolov_features`, `mikolov_embedding_model`, `mikolov_embedding_training` :
+    * Viene effettuata la stessa procedura per costruire il dizionario delle 60000 parole più frequenti. 
+    * Vengono generate le feature per la costruzione dell'embedding formando un set di dati composto dall'accoppiamento di ogni parola con il suo contesto. Vengono considerate come contesto la parola a destra e la parola a sinistra del target.  
+    È possibile determinare la dimensione dell'embedding e il numero di etichette negative utilizzate per il campionamento.
+    * La funzione obiettivo usata dalla rete è lo *Stocastic Gradient Descent* SGD.
+
+* Nei file `mikolov_model`, `mikolov_training` :
+    * Costruiamo un modello con n layer convoluzionali e uno finale completamente connesso. Ad ognuno di essi viene applicata la funzione di attivazione non lineare *ReLU*. Dopo ogni layer viene effettuata una *batch-normalization*. Inoltre dopo il primo layer vi è un layer di *pooling*.
+    * Le simulazioni possono essere addestate per n epoche. L'ottimizzatore scelto è *Adagrad* con learning rate 0,005. La funzione obiettivo utilizzata è il *mean squared error* MSE, inoltre si ricorre all'utilizzo della metrica *root mean squared error* RMSE.
 
 
-## Utilizzo
+#####Modello 3
 
-La funzione principale è `recognize_chess_pieces`, che prende in input 
-l'immagine da analizzare, localizza la scacchiera, riconosce i pezzi e li 
-ritorna codificati in notazione FEN.
+* Nei file `mikolov_features` :
+    * Viene effettuata la stessa procedura del modello 2 ma la costruzione dell'embedding aviene formando un set di dati composto dall'accoppiamento di ogni aggettivo di nostro interesse con il suo contesto. Vengono considerate come contesto le due parole a destra e le due parole a sinistra del target.  
+    
+#####Modello 4
 
-```matlab
-  image = imread('path/immagine/desiderata.jpg');
-  fen = recognize_chess_pieces(image);
-```
-
-Chiamando `recognize_chess_pieces` senza assegnare il valore di ritorno o 
-passando esplicitamente `true` come secondo parametro permette di visualizzare 
-in una figura di MATLAB la posizione della scacchiera nell'immagine e la 
-configurazione di pezzi riconosciuta.
-
-```matlab
-  recognize_chess_pieces(image);
-```
-
-## Addestramento
-
-Abbiamo creato una serie di script per automatizzare e rendere ripetibile il 
-processo di addestramento dei classificatori. La procedure dei tre 
-classificatori sono molto simili tra loro, viene mostrata come esempio la 
-procedura per `orientation_classifier`:
-
-```matlab
-  % Estrai le feature dalle immagini dei tre dataset e crea la tabella che verrà
-  % usata per l'addestramento.
-  ds = orientation_classifier.training.create_dataset(1:3);
-
-  % Partiziona il dataset in training e test per permettere la validazione.
-  cv = orientation_classifier.training.create_cvpartition(ds);
-
-  % La partizione viene fatta sulle immagini, ma il classificatore lavora su una
-  % cella singola per volta. Tutte le celle di un'immagine vengono messe insieme.
-  test = images(cv.test, :);
-  training = images(cv.training, :);
-
-  test_cells = innerjoin(ds, test);
-  training_cells = innerjoin(ds, training);
-
-  % Addestra il classificatore.
-  model = orientation_classifier.training.train_cubic_svm(training_cells);
-
-  % Esegui la validazione del modello, mostrando la matrice di confusione e 
-  % infomazioni sulle performance ottenute aggregando tutte le celle di un'immagine.
-  orientation_classifier.training.evaluate_model(model);
-```
-
-## Organizzazione delle cartelle
-
-Nella cartella principale del progetto troviamo diverse sottocartelle e funzioni 
-utilizzate nel progetto:
-
-* `datasets` contiene i tre dataset, al cui interno abbiamo:
-  * cartella `images` con le immagini originali;
-  * `labels.csv` e `puzzles.csv` con le configurazioni FEN di ogni scacchiera;
-  * `framepoints.mat` con le coordinate degli angoli di ogni scacchiera;
-  * cartella `frames` con le componenti connesse estratte dagli edge ed etichettate, usate nell'addestramento di `edge_classifier`;
-  * cartella `groundtruth` con le configurazioni FEN nel formato richiesto dalla consegna del progetto;
-* `docs` contiene i dettagli del progetto e la relazione;
-* `fonts` contiene il font _Chess Mérida_ e i template dei singoli pezzi;
-* `+edge_classifier`, `+orientation_classifier` e `+piece_classifier` contengono il codice dei tre classificatori:
-  * il modello addestrato, le funzioni utilizzate per l’estrazione delle feature;
-  * `+training` con le funzioni utilizzate per l'addestramentoe e la valutazione del modello;.
-* `+lib` contiene funzioni di terze parti scaricate da _MATLAB Central_ e altre fonti.
-* `+utilities` contiene vari script creati e utilizzati nello sviluppo ma che non fanno parte del normale flusso del progetto.
+* Nei file `mikolov_multiclass_binary_model`, `mikolov_multiclass_binary_training`  :
+    * La procedure di estrazione dell'embedding è la stessa dei due precedenti modelli.    * Costruiamo un modello di base, con n layer. ad ognuno di essi viene applicata la funzione di attivazione non lineare *ReLU*. Dopo ogni layer viene effettuata una *batch-normalization*.
+    * Il modello costruito è simile al precedente con la differenza che la funzione obiettivo utilizzata è la *softmax cross entropy*. Inoltre si ricorre all'utilizzo della metrica *accuracy* per ogni tratto di personalità, e vengono plottate tramite *Tensorboard* la matrici di confusione.
