@@ -4,6 +4,10 @@
 Il lavoro consiste nell'identificazione di una procedura in grado di estrarre, tramite approcci automatici, la personalità del oggetto "target" a cui un determinato testo si riferisce.  
  Vengono esplorati diversi spazi di rappresentazione, si parte da un approccio che sfrutta la rappresentazione *bag-of-words*, fino a giungere alla costruzione di un embedding di parole utilizzando la versione *skip-gram* dell'algoritmo `word2vec` di Tomas Mikolov. 
  In seguito si sfrutteranno tre diversi tipi di reti neurali artificiali.  
+ 
+ ## Dataset
+ 
+Il dataset per questo task è scaricabile da https://www.yelp.com/dataset/challenge
 
 ## Obiettivo
 
