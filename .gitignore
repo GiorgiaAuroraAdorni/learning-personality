@@ -1,17 +1,6 @@
 *.tar
-/Code/review.json
-/Code/review.json.gz
-/Code/review10.json
-/Dataset
 *.sql
 /Code/__pycache__
 /Code/.fuse_hidden0000016e0000001d
 /Code/.idea
-/Analisi
-/Documents
-/glove.pdf
-/ocean.numbers
-/prediction_model1_.numbers
-/Tesi
-/Introduction
 .DS_Store
