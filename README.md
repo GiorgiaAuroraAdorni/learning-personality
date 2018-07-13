@@ -44,7 +44,7 @@ Il terzo modello trasforma il problema di regressione in uno di *classificazione
     * Vengono eliminati gli aggettivi che compaiono nel dizionario presenti nel dataset ocean.
     * Generiamo un nuovo file compatto in cui abbiamo solo le prime n parole più frequenti, in modo che in seguito venga associato ad essi il token 'UNK'.
 
-#####Modello 1
+#### Modello 1
    
 * Nei file `extract_features`, `model_input`, `training` :
     * Viene costruita una lookup-table contentente le 60000 parole più frequenti. Le parole univoche vengono indicizzate con un valore intero univoco (corrispondente al numero della linea), le parole non comprese tra le prime 60000 parole più comuni verranno contrassegnate con "-1". 
@@ -53,7 +53,7 @@ Il terzo modello trasforma il problema di regressione in uno di *classificazione
     * Costruiamo un modello di base, con n layer completamente connessi. Ad ognuno di essi viene applicata la funzione di attivazione non lineare *ReLU*. Dopo ogni layer viene effettuata una *batch-normalization*.
     * Le simulazioni possono essere addestate per n epoche. L'ottimizzatore scelto è *Adagrad* con learning rate 0,001. La funzione obiettivo utilizzata è il *mean squared error* MSE, inoltre si ricorre all'utilizzo della metrica *root mean squared error* RMSE.
 
-#####Modello 2
+#### Modello 2
 
 * Nei file `mikolov_features`, `mikolov_embedding_model`, `mikolov_embedding_training` :
     * Viene effettuata la stessa procedura per costruire il dizionario delle 60000 parole più frequenti. 
@@ -66,12 +66,12 @@ Il terzo modello trasforma il problema di regressione in uno di *classificazione
     * Le simulazioni possono essere addestate per n epoche. L'ottimizzatore scelto è *Adagrad* con learning rate 0,005. La funzione obiettivo utilizzata è il *mean squared error* MSE, inoltre si ricorre all'utilizzo della metrica *root mean squared error* RMSE.
 
 
-#####Modello 3
+#### Modello 3
 
 * Nei file `mikolov_features` :
     * Viene effettuata la stessa procedura del modello 2 ma la costruzione dell'embedding aviene formando un set di dati composto dall'accoppiamento di ogni aggettivo di nostro interesse con il suo contesto. Vengono considerate come contesto le due parole a destra e le due parole a sinistra del target.  
     
-#####Modello 4
+#### Modello 4
 
 * Nei file `mikolov_multiclass_binary_model`, `mikolov_multiclass_binary_training`  :
     * La procedure di estrazione dell'embedding è la stessa dei due precedenti modelli.    * Costruiamo un modello di base, con n layer. ad ognuno di essi viene applicata la funzione di attivazione non lineare *ReLU*. Dopo ogni layer viene effettuata una *batch-normalization*.
