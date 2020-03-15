@@ -71,4 +71,4 @@ The third model transforms the regression problem into a *binary multi-label cla
 * In the `mikolov_multiclass_binary_model`, `mikolov_multiclass_binary_training` files :
     * The procedure for extracting the embedding is the same as for the two previous models.    
     * We build a basic model, with n layers. The *ReLU* non-linear activation function is applied to each of them. A *batch-normalization* is performed after each layer.
-    *The built model is similar to the previous one with the difference that the objective function used is a *softmax cross entropy*. Furthermore, the *accuracy* is used as metric for each personality trait, and the confusion matrices are plotted with *Tensorboard*.
+    * The built model is similar to the previous one with the difference that the objective function used is a *softmax cross entropy*. Furthermore, the *accuracy* is used as metric for each personality trait, and the confusion matrices are plotted with *Tensorboard*.
